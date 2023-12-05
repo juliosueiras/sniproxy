@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <arpa/inet.h> /* inet_pton */
 #include <sys/un.h>
 #include <assert.h>
@@ -42,6 +43,7 @@ struct Address {
         HOSTNAME,
         SOCKADDR,
         WILDCARD,
+        PATTERN,
     } type;
 
     size_t len;     /* length of data */
@@ -123,6 +125,20 @@ new_address(const char *hostname_or_ip) {
         }
     }
 
+    if (strchr(hostname_or_ip, '$') != NULL) {
+        len = strlen(hostname_or_ip);
+        struct Address *addr = malloc(
+                offsetof(struct Address, data) + len + 1);
+        if (addr != NULL) {
+            addr->type = PATTERN;
+            addr->port = 0;
+            addr->len = len;
+            memcpy(addr->data, hostname_or_ip, len);
+            addr->data[addr->len] = '\0';
+        }
+        return addr;
+    }
+
     /* Wildcard */
     if (strcmp("*", hostname_or_ip) == 0) {
         struct Address *addr = malloc(sizeof(struct Address));
@@ -148,8 +164,6 @@ new_address(const char *hostname_or_ip) {
     if (hostname_or_ip[0] == '[' &&
             (port = strchr(hostname_or_ip, ']')) != NULL) {
         len = (size_t)(port - hostname_or_ip - 1);
-        if (len >= INET6_ADDRSTRLEN)
-            return NULL;
 
         /* inet_pton() will not parse the IP correctly unless it is in a
          * separate string.
@@ -216,6 +230,7 @@ size_t
 address_len(const struct Address *addr) {
     switch (addr->type) {
         case HOSTNAME:
+        case PATTERN:
             /* include trailing null byte */
             return offsetof(struct Address, data) + addr->len + 1;
         case SOCKADDR:
@@ -276,9 +291,22 @@ address_is_wildcard(const struct Address *addr) {
     return addr != NULL && addr->type == WILDCARD;
 }
 
+int
+address_is_pattern(const struct Address * addr) {
+    return addr != NULL && addr->type == PATTERN;
+}
+
 const char *
 address_hostname(const struct Address *addr) {
     if (addr->type != HOSTNAME)
+        return NULL;
+
+    return addr->data;
+}
+
+const char *
+address_pattern(const struct Address *addr) {
+    if (addr->type != PATTERN)
         return NULL;
 
     return addr->data;
@@ -321,6 +349,7 @@ address_port(const struct Address *addr) {
                     return 0;
             }
         case WILDCARD:
+        case PATTERN:
             return addr->port;
         default:
             /* invalid Address type */
@@ -352,6 +381,7 @@ address_set_port(struct Address *addr, uint16_t port) {
             /* fall through */
         case HOSTNAME:
         case WILDCARD:
+        case PATTERN:
             addr->port = port;
             break;
         default:
@@ -377,6 +407,7 @@ display_address(const struct Address *addr, char *buffer, size_t buffer_len) {
 
     switch (addr->type) {
         case HOSTNAME:
+        case PATTERN:
             if (addr->port != 0)
                 snprintf(buffer, buffer_len, "%s:%" PRIu16,
                         addr->data,

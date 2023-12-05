@@ -1,5 +1,5 @@
 Name: sniproxy
-Version: 0.6.1
+Version: 0.6.0
 Release: 1%{?dist}
 Summary: Transparent TLS and HTTP layer 4 proxy with SNI support
 
@@ -46,10 +46,6 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Thu Mar 16 2023 Dustin Lundquist <dustin@null-ptr.net 0.6.1-1
-- Fix buffer overflow in address module
-- Fix tests
-
 * Wed Dec 5 2018 Dustin Lundquist <dustin@null-ptr.net> 0.6.0-1
 - PROXY v1 protocol support
 - SO_REUSEPORT support on Linux 3.9 and later

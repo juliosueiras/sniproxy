@@ -32,6 +32,7 @@
 #include <sys/queue.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <netdb.h> /* getaddrinfo */
 #include <unistd.h> /* close */
@@ -490,6 +491,16 @@ abort_connection(struct Connection *con) {
 
 static void
 resolve_server_address(struct Connection *con, struct ev_loop *loop) {
+    //struct hostent *cnameAddr;
+    //cnameAddr = gethostbyname2(con->hostname, PF_INET);
+    //if (cnameAddr != NULL) {
+    //  con->hostname = cnameAddr->h_name;
+    //  con->hostname_len = strlen(cnameAddr->h_name);
+    //};
+    //char *host = Netlookup("google.ca");
+    //warn("Address 2: %s", host);
+    //con->hostname = host;
+    //con->hostname_len = strlen(host);
     struct LookupResult result =
         listener_lookup_server_address(con->listener, con->hostname, con->hostname_len);
 
